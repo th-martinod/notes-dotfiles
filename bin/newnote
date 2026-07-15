@@ -1,0 +1,47 @@
+#!/bin/bash
+set -e
+
+TEMPLATES_REPO="git@github.com:th-martinod/latex-templates.git"
+NOTES_DIR="$HOME/vim-notes/notes"
+
+# --- Uso ---
+if [ "$#" -ne 3 ]; then
+  echo "Uso: newnote <tipo> <categoria> <nombre>"
+  echo "Ejemplo: newnote math-notes mates algebra-lineal"
+  exit 1
+fi
+
+TYPE="$1"
+CATEGORY="$2"
+NAME="$3"
+DEST="$NOTES_DIR/$CATEGORY/$NAME"
+
+# --- Evita sobrescribir una nota existente ---
+if [ -d "$DEST" ]; then
+  echo "Error: ya existe una nota en $DEST"
+  exit 1
+fi
+
+# --- Clona el repo de templates a una carpeta temporal ---
+TMP_DIR=$(mktemp -d)
+git clone --depth 1 "$TEMPLATES_REPO" "$TMP_DIR" > /dev/null 2>&1
+
+# --- Verifica que el tipo de template exista ---
+if [ ! -d "$TMP_DIR/$TYPE" ]; then
+  echo "Error: no existe el tipo de template '$TYPE'"
+  echo "Tipos disponibles:"
+  ls "$TMP_DIR" | grep -v '^\.'
+  rm -rf "$TMP_DIR"
+  exit 1
+fi
+
+# --- Copia el template hacia el destino ---
+mkdir -p "$NOTES_DIR/$CATEGORY"
+cp -r "$TMP_DIR/$TYPE" "$DEST"
+rm -rf "$TMP_DIR"
+
+# --- Reemplaza los placeholders ---
+TODAY=$(date +%Y-%m-%d)
+find "$DEST" -type f \( -name "*.tex" -o -name "*.sty" \) -exec sed -i "s/{{COURSE}}/$NAME/g; s/{{DATE}}/$TODAY/g" {} \;
+
+echo "Nota creada en: $DEST"
