@@ -1,3 +1,5 @@
+set number
+
 call plug#begin('~/.vim/plugged')
 
 Plug 'lervag/vimtex'
